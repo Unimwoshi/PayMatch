@@ -1,6 +1,24 @@
 import express from 'express'
+import {
+  createPayment,
+  getPayments,
+  getPaymentById,
+  updatePayment,
+  deletePayment
+} from '../controllers/paymentController.js'
+import protect from '../middleware/authMiddleware.js'
+
 const router = express.Router()
 
-router.get('/', (req, res) => res.json({ message: 'Payment routes working' }))
+router.use(protect) // all payment routes require login
+
+router.route('/')
+  .get(getPayments)
+  .post(createPayment)
+
+router.route('/:id')
+  .get(getPaymentById)
+  .put(updatePayment)
+  .delete(deletePayment)
 
 export default router

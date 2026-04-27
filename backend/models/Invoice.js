@@ -53,11 +53,10 @@ const invoiceSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 // Auto-set remainingBalance to full amount on creation
-invoiceSchema.pre('save', function (next) {
+invoiceSchema.pre('save', async function () {
   if (this.isNew && this.remainingBalance === undefined) {
     this.remainingBalance = this.amount
   }
-  next()
 })
 
 const Invoice = mongoose.model('Invoice', invoiceSchema)
