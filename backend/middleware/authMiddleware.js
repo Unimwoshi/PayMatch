@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+import logger from '../utils/logger.js'
 
 const protect = async (req, res, next) => {
   try {
@@ -10,16 +11,25 @@ const protect = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1]
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    req.user = await User.findById(decoded.id).select('-password')
 
-    if (!req.user) {
-      return res.status(401).json({ message: 'Not authorized, user not found' })
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      req.user = await User.findById(decoded.id).select('-password -refreshTokens')
+
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authorized, user not found' })
+      }
+
+      next()
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token expired', code: 'TOKEN_EXPIRED' })
+      }
+      return res.status(401).json({ message: 'Not authorized, token failed' })
     }
-
-    next()
   } catch (error) {
-    res.status(401).json({ message: 'Not authorized, token failed' })
+    logger.error({ event: 'auth_middleware_error', error: error.message })
+    res.status(500).json({ message: 'Server error' })
   }
 }
 

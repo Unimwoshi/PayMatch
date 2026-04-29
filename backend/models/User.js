@@ -21,17 +21,49 @@ const userSchema = new mongoose.Schema({
   businessName: {
     type: String,
     trim: true
+  },
+  plan: {
+    type: String,
+    enum: ['free', 'student', 'starter', 'business', 'pro'],
+    default: 'free'
+  },
+  onboardingComplete: {
+    type: Boolean,
+    default: false
+  },
+  verificationStatus: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'rejected', 'expired'],
+    default: 'none'
+  },
+  refreshTokens: [{
+    token: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date
+  },
+  lastLogin: {
+    type: Date
   }
 }, { timestamps: true })
 
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return
-  const salt = await bcrypt.genSalt(10)
+  const salt = await bcrypt.genSalt(12)
   this.password = await bcrypt.hash(this.password, salt)
 })
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password)
+}
+
+userSchema.methods.isLocked = function () {
+  return this.lockUntil && this.lockUntil > Date.now()
 }
 
 const User = mongoose.model('User', userSchema)

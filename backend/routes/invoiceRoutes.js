@@ -7,14 +7,15 @@ import {
   deleteInvoice
 } from '../controllers/invoiceController.js'
 import protect from '../middleware/authMiddleware.js'
+import { validate, invoiceSchema } from '../utils/validation.js'
 
 const router = express.Router()
 
-router.use(protect) // all invoice routes require login
+router.use(protect)
 
 router.route('/')
   .get(getInvoices)
-  .post(createInvoice)
+  .post(validate(invoiceSchema), createInvoice)
 
 router.route('/:id')
   .get(getInvoiceById)
