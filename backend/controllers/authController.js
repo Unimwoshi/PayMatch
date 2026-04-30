@@ -1,6 +1,7 @@
 import User from '../models/User.js'
 import jwt from 'jsonwebtoken'
 import logger from '../utils/logger.js'
+import { logoUploader } from '../config/cloudinary.js'
 
 const generateAccessToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '15m' })
@@ -192,6 +193,64 @@ export const updateProfile = async (req, res) => {
       plan: user.plan,
       onboardingComplete: user.onboardingComplete
     })
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+export const completeOnboarding = async (req, res) => {
+  try {
+    const { businessName, address, phone, bankName, accountNumber, accountName, currency, vatEnabled } = req.body
+
+    const user = await User.findById(req.user._id)
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    if (businessName) user.businessName = businessName
+    user.onboardingComplete = true
+    user.businessDetails = {
+      address: address || '',
+      phone: phone || '',
+      bankName: bankName || '',
+      accountNumber: accountNumber || '',
+      accountName: accountName || '',
+      currency: currency || 'NGN',
+      vatEnabled: vatEnabled ?? true
+    }
+
+    await user.save()
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      businessName: user.businessName,
+      plan: user.plan,
+      onboardingComplete: user.onboardingComplete,
+      businessDetails: user.businessDetails
+    })
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+export const uploadBusinessLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' })
+    }
+
+    const result = await logoUploader.upload(req.file.buffer, req.file.mimetype)
+
+    const user = await User.findById(req.user._id)
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    user.businessDetails = {
+      ...user.businessDetails,
+      logoUrl: result.secure_url
+    }
+
+    await user.save()
+    res.json({ logoUrl: result.secure_url })
   } catch (error) {
     res.status(500).json({ message: 'Server error' })
   }

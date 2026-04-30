@@ -32,7 +32,7 @@ const Register = () => {
   try {
     const { data } = await api.post('/auth/login', form)
     login(data, data.token)
-    navigate('/dashboard')
+    navigate('/onboarding')
   } catch (err) {
     setError(err.response?.data?.message || 'Login failed. Try again.')
   } finally {

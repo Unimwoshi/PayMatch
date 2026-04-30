@@ -31,6 +31,16 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  businessDetails: {
+  address: { type: String, default: '' },
+  phone: { type: String, default: '' },
+  bankName: { type: String, default: '' },
+  accountNumber: { type: String, default: '' },
+  accountName: { type: String, default: '' },
+  currency: { type: String, default: 'NGN' },
+  vatEnabled: { type: Boolean, default: true },
+  logoUrl: { type: String, default: '' }
+  },
   verificationStatus: {
     type: String,
     enum: ['none', 'pending', 'approved', 'rejected', 'expired'],

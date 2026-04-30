@@ -164,26 +164,40 @@ const Dashboard = () => {
             Financial overview
           </h2>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={barData} barSize={36}>
-              <XAxis
+            <BarChart data={barData} barSize={36} style={{ cursor: 'default' }}>
+                <XAxis
                 dataKey="name"
                 tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
                 axisLine={false}
                 tickLine={false}
-              />
-              <YAxis hide />
-              <Tooltip
-                formatter={(val) => formatNaira(val)}
+                />
+                <YAxis hide />
+                <Tooltip
+                formatter={(val) => [formatNaira(val), '']}
                 contentStyle={{
-                  backgroundColor: 'var(--color-bg-card)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '8px',
-                  fontSize: '12px'
+                    backgroundColor: 'var(--color-bg-card)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    color: 'var(--color-text-primary)',
+                    boxShadow: 'none',
+                    padding: '8px 12px'
                 }}
-              />
-              <Bar dataKey="amount" radius={[6, 6, 0, 0]} fill="var(--color-primary)" />
+                labelStyle={{ color: 'var(--color-text-muted)', marginBottom: '2px' }}
+                cursor={{ fill: 'var(--color-border)', radius: 6, opacity: 0.4 }}
+                animationDuration={200}
+                animationEasing="ease-out"
+                />
+                <Bar
+                dataKey="amount"
+                radius={[6, 6, 0, 0]}
+                fill="var(--color-primary)"
+                isAnimationActive={true}
+                animationDuration={600}
+                animationEasing="ease-out"
+                />
             </BarChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
         </div>
 
         <div
@@ -198,22 +212,39 @@ const Dashboard = () => {
           </h2>
           <div className="flex items-center gap-8">
             <ResponsiveContainer width="50%" height={180}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i]} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+                <PieChart>
+                    <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey="value"
+                    strokeWidth={0}
+                    animationBegin={0}
+                    animationDuration={600}
+                    animationEasing="ease-out"
+                    >
+                    {pieData.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i]} stroke="none" />
+                    ))}
+                    </Pie>
+                    <Tooltip
+                    contentStyle={{
+                        backgroundColor: 'var(--color-bg-card)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '10px',
+                        fontSize: '12px',
+                        color: 'var(--color-text-primary)',
+                        boxShadow: 'none',
+                        padding: '8px 12px'
+                    }}
+                    animationDuration={200}
+                    animationEasing="ease-out"
+                    />
+                </PieChart>
+                </ResponsiveContainer>
             <div className="space-y-3">
               {pieData.map((item, i) => (
                 <div key={i} className="flex items-center gap-2">

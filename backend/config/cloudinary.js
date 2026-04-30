@@ -1,5 +1,4 @@
 import { v2 as cloudinary } from 'cloudinary'
-import { CloudinaryStorage } from 'multer-storage-cloudinary'
 import multer from 'multer'
 import dotenv from 'dotenv'
 
@@ -11,64 +10,60 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 })
 
-const createStorage = (folder, allowedFormats) =>
-  new CloudinaryStorage({
-    cloudinary,
-    params: {
-      folder: `fynlo/${folder}`,
-      allowed_formats: allowedFormats,
-      resource_type: 'auto',
-      public_id: (req, file) => `${Date.now()}-${Math.random().toString(36).slice(2)}`
-    }
-  })
+const memoryStorage = multer.memoryStorage()
 
-export const uploadReceipt = multer({
-  storage: createStorage('receipts', ['jpg', 'jpeg', 'png', 'pdf']),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'application/pdf']
-    if (!allowed.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type. Only JPG, PNG and PDF allowed.'))
-    }
-    cb(null, true)
-  }
-})
+const createUploader = (allowedTypes, maxSize, folder) => {
+  return {
+    middleware: multer({
+      storage: memoryStorage,
+      limits: { fileSize: maxSize },
+      fileFilter: (req, file, cb) => {
+        if (!allowedTypes.includes(file.mimetype)) {
+          return cb(new Error(`Invalid file type. Allowed: ${allowedTypes.join(', ')}`))
+        }
+        cb(null, true)
+      }
+    }),
+    upload: async (buffer, mimetype) => {
+      return new Promise((resolve, reject) => {
+        const resourceType = mimetype === 'application/pdf' ? 'raw' : 'image'
+        const publicId = `aether/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-export const uploadLogo = multer({
-  storage: createStorage('logos', ['jpg', 'jpeg', 'png']),
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png']
-    if (!allowed.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type. Only JPG and PNG allowed.'))
+        cloudinary.uploader.upload_stream(
+          { folder: `aether/${folder}`, resource_type: resourceType, public_id: publicId },
+          (error, result) => {
+            if (error) return reject(error)
+            resolve(result)
+          }
+        ).end(buffer)
+      })
     }
-    cb(null, true)
   }
-})
+}
 
-export const uploadTemplate = multer({
-  storage: createStorage('templates', ['jpg', 'jpeg', 'png', 'pdf']),
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'application/pdf']
-    if (!allowed.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type. Only JPG, PNG and PDF allowed.'))
-    }
-    cb(null, true)
-  }
-})
+export const receiptUploader = createUploader(
+  ['image/jpeg', 'image/png', 'application/pdf'],
+  5 * 1024 * 1024,
+  'receipts'
+)
 
-export const uploadStudentId = multer({
-  storage: createStorage('student-verification', ['jpg', 'jpeg', 'png', 'pdf']),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'application/pdf']
-    if (!allowed.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type. Only JPG, PNG and PDF allowed.'))
-    }
-    cb(null, true)
-  }
-})
+export const logoUploader = createUploader(
+  ['image/jpeg', 'image/png'],
+  2 * 1024 * 1024,
+  'logos'
+)
+
+export const templateUploader = createUploader(
+  ['image/jpeg', 'image/png', 'application/pdf'],
+  10 * 1024 * 1024,
+  'templates'
+)
+
+export const studentIdUploader = createUploader(
+  ['image/jpeg', 'image/png', 'application/pdf'],
+  5 * 1024 * 1024,
+  'student-verification'
+)
 
 export const deleteFile = async (publicId) => {
   try {

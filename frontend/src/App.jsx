@@ -10,7 +10,10 @@ import Dashboard from './pages/Dashboard'
 import Invoices from './pages/Invoices'
 import Payments from './pages/Payments'
 import Reconciliation from './pages/Reconciliation'
-
+import Profile from './pages/Profile'
+import Settings from './pages/Settings'
+import Onboarding from './pages/Onboarding'
+{ to: '/customers', label: 'Customers', icon: Users },
 
 const AppLayout = ({ children, title }) => (
   <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
@@ -26,6 +29,14 @@ const AppLayout = ({ children, title }) => (
     <MobileNav />
   </div>
 )
+
+const OnboardingGuard = ({ children }) => {
+  const { user } = useAuth()
+  if (user && !user.onboardingComplete) {
+    return <Navigate to="/onboarding" replace />
+  }
+  return children
+}
 function App() {
   return (
     <ThemeProvider>
@@ -33,35 +44,69 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/onboarding" element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          } />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
+              <OnboardingGuard>
               <AppLayout title="Dashboard">
                 <Dashboard />
               </AppLayout>
+              </OnboardingGuard>
             </ProtectedRoute>
           } />
           <Route path="/invoices" element={
             <ProtectedRoute>
+              <OnboardingGuard>
               <AppLayout title="Invoices">
                 <Invoices />
               </AppLayout>
+              </OnboardingGuard>
             </ProtectedRoute>
           } />
           <Route path="/payments" element={
             <ProtectedRoute>
+              <OnboardingGuard>
               <AppLayout title="Payments">
                 <Payments />
               </AppLayout>
+              </OnboardingGuard>
             </ProtectedRoute>
           } />
           <Route path="/reconciliation" element={
             <ProtectedRoute>
+              <OnboardingGuard>
               <AppLayout title="Reconciliation">
                 <Reconciliation />
               </AppLayout>
+              </OnboardingGuard>
             </ProtectedRoute>
           } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <OnboardingGuard>
+                <AppLayout title="Profile"><Profile /></AppLayout>
+              </OnboardingGuard>
+            </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+            <ProtectedRoute>
+              <OnboardingGuard>
+                <AppLayout title="Settings"><Settings /></AppLayout>
+              </OnboardingGuard>
+            </ProtectedRoute>
+            } />
+            <Route path="/customers" element={
+              <ProtectedRoute>
+                <OnboardingGuard>
+                  <AppLayout title="Customers"><Customers /></AppLayout>
+                </OnboardingGuard>
+              </ProtectedRoute>
+            } />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>

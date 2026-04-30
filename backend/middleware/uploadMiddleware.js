@@ -1,6 +1,6 @@
-import { uploadReceipt, uploadLogo, uploadTemplate, uploadStudentId } from '../config/cloudinary.js'
+import { receiptUploader, logoUploader, templateUploader, studentIdUploader } from '../config/cloudinary.js'
 
-export { uploadReceipt, uploadLogo, uploadTemplate, uploadStudentId }
+export { receiptUploader, logoUploader, templateUploader, studentIdUploader }
 
 export const handleUploadError = (err, req, res) => {
   if (err instanceof Error) {

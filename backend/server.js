@@ -7,7 +7,7 @@ import mongoSanitize from 'express-mongo-sanitize'
 import connectDB from './config/db.js'
 import { generalLimiter } from './middleware/security.js'
 import logger from './utils/logger.js'
-
+import customerRoutes from './routes/customerRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 import invoiceRoutes from './routes/invoiceRoutes.js'
 import paymentRoutes from './routes/paymentRoutes.js'
@@ -36,6 +36,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/invoices', invoiceRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/reconciliation', reconciliationRoutes)
+app.use('/api/customers', customerRoutes)
 
 app.use((err, req, res, next) => {
   logger.error({ event: 'unhandled_error', error: err.message, stack: err.stack })

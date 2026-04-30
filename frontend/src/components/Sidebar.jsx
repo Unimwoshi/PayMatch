@@ -8,7 +8,10 @@ import {
   GitMerge,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight, 
+  Settings,
+  User,
+  Users
 } from 'lucide-react'
 
 const navItems = [
@@ -16,6 +19,8 @@ const navItems = [
   { to: '/invoices', label: 'Invoices', icon: FileText },
   { to: '/payments', label: 'Payments', icon: CreditCard },
   { to: '/reconciliation', label: 'Reconcile', icon: GitMerge },
+  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/customers', label: 'Customers', icon: Users },
 ]
 
 const Sidebar = () => {
@@ -33,7 +38,7 @@ const Sidebar = () => {
       style={{
         backgroundColor: 'var(--color-bg-sidebar)',
         width: collapsed ? '64px' : '220px',
-        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'width 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
         minWidth: collapsed ? '64px' : '220px'
       }}
       className="flex flex-col h-screen overflow-hidden relative"
@@ -47,7 +52,7 @@ const Sidebar = () => {
             transition: 'opacity 0.2s ease, width 0.3s ease'
           }}
         >
-          Pay<span style={{ color: 'var(--color-primary-bright)' }}>Match</span>
+          Fyn<span style={{ color: 'var(--color-primary-bright)' }}>lo</span>
         </span>
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -90,19 +95,29 @@ const Sidebar = () => {
       </nav>
 
       <div className="px-2 pb-4 space-y-1">
+        
+        <NavLink
+        to="/profile"
+        className="flex items-center px-3 py-2.5 rounded-lg w-full transition-all duration-150 overflow-hidden whitespace-nowrap hover:bg-white/5"
+    >
         <div
-          className="px-3 py-2.5 rounded-lg overflow-hidden"
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.05)',
-            opacity: collapsed ? 0 : 1,
-            maxHeight: collapsed ? 0 : '60px',
-            transition: 'opacity 0.2s ease, max-height 0.3s ease, padding 0.3s ease',
-            padding: collapsed ? '0 12px' : undefined
-          }}
+        className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold"
+        style={{ backgroundColor: 'var(--color-primary)' }}
         >
-          <p className="text-white text-xs font-medium truncate">{user?.name}</p>
-          <p className="text-white/40 text-xs truncate">{user?.businessName || user?.email}</p>
+        {user?.name?.charAt(0).toUpperCase()}
         </div>
+        <div
+        className="ml-3 overflow-hidden"
+        style={{
+            opacity: collapsed ? 0 : 1,
+            maxWidth: collapsed ? 0 : '200px',
+            transition: 'opacity 0.2s ease, max-width 0.3s ease'
+        }}
+        >
+        <p className="text-white text-xs font-medium truncate">{user?.name}</p>
+        <p className="text-white/40 text-xs truncate">{user?.businessName || user?.email}</p>
+        </div>
+        </NavLink>
 
         <button
           onClick={handleLogout}
@@ -153,6 +168,9 @@ export const MobileNav = () => {
           <span className="text-xs">{label}</span>
         </NavLink>
       ))}
+
+        
+
       <button
         onClick={() => { logout(); navigate('/login') }}
         className="flex flex-col items-center gap-1 px-3 py-1.5 text-white/40"

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import api from '../api/axios'
 
 const AuthContext = createContext()
 
@@ -22,15 +23,37 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData))
   }
 
-  const logout = () => {
-    setUser(null)
-    setToken(null)
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch (err) {
+      console.error('Logout error:', err.message)
+    } finally {
+      setUser(null)
+      setToken(null)
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+    }
   }
 
+  const updateUser = (userData) => {
+    const updated = { ...user, ...userData }
+    setUser(updated)
+    localStorage.setItem('user', JSON.stringify(updated))
+  }
+
+  const needsOnboarding = user && !user.onboardingComplete
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      login,
+      logout,
+      loading,
+      updateUser,
+      needsOnboarding
+    }}>
       {children}
     </AuthContext.Provider>
   )
