@@ -1,24 +1,69 @@
 import Invoice from '../models/Invoice.js'
+import User from '../models/User.js'
+import notify from '../utils/notify.js'
 
-// @route   POST /api/invoices
 export const createInvoice = async (req, res) => {
   try {
-    const { invoiceNumber, customerName, amount, issueDate, dueDate, description } = req.body
+    const {
+      invoiceNumber,
+      customerName,
+      customerEmail,
+      customerAddress,
+      customerPhone,
+      lineItems,
+      vatEnabled,
+      vatRate,
+      whtEnabled,
+      whtRate,
+      discount,
+      discountType,
+      currency,
+      issueDate,
+      dueDate,
+      notes,
+      templateId
+    } = req.body
 
-    if (!customerName || !amount || !issueDate) {
-      return res.status(400).json({ message: 'Customer name, amount and issue date are required' })
+    if (!customerName || !issueDate || !lineItems?.length) {
+      return res.status(400).json({ message: 'Customer name, issue date and at least one line item are required' })
     }
+
+    // Snapshot bank details from user profile at time of invoice creation
+    const user = await User.findById(req.user._id)
+    const bankName = user.businessDetails?.bankName || ''
+    const accountNumber = user.businessDetails?.accountNumber || ''
+    const accountName = user.businessDetails?.accountName || ''
 
     const invoice = await Invoice.create({
       user: req.user._id,
       invoiceNumber,
       customerName,
-      amount,
+      customerEmail,
+      customerAddress,
+      customerPhone,
+      lineItems,
+      vatEnabled: vatEnabled ?? user.businessDetails?.vatEnabled ?? false,
+      vatRate: vatRate ?? 7.5,
+      whtEnabled: whtEnabled ?? false,
+      whtRate: whtRate ?? 5,
+      discount: discount ?? 0,
+      discountType: discountType ?? 'fixed',
+      currency: currency || user.businessDetails?.currency || 'NGN',
       issueDate,
       dueDate,
-      description,
-      remainingBalance: amount,
+      bankName,
+      accountNumber,
+      accountName,
+      notes,
+      templateId: templateId || 'classic',
       source: 'manual'
+    })
+
+    await notify(req.user._id, {
+      title: 'Invoice created',
+      message: `Invoice for ${invoice.customerName} — ${invoice.currency} ${invoice.amount.toLocaleString()}`,
+      type: 'invoice_created',
+      link: '/invoices'
     })
 
     res.status(201).json(invoice)
@@ -27,7 +72,6 @@ export const createInvoice = async (req, res) => {
   }
 }
 
-// @route   GET /api/invoices
 export const getInvoices = async (req, res) => {
   try {
     const invoices = await Invoice.find({ user: req.user._id }).sort({ createdAt: -1 })
@@ -37,7 +81,6 @@ export const getInvoices = async (req, res) => {
   }
 }
 
-// @route   GET /api/invoices/:id
 export const getInvoiceById = async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id)
@@ -56,7 +99,6 @@ export const getInvoiceById = async (req, res) => {
   }
 }
 
-// @route   PUT /api/invoices/:id
 export const updateInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id)
@@ -69,19 +111,16 @@ export const updateInvoice = async (req, res) => {
       return res.status(401).json({ message: 'Not authorized' })
     }
 
-    const updated = await Invoice.findByIdAndUpdate(
-      req.params.id,
-      { ...req.body },
-      { new: true, runValidators: true }
-    )
+    // Apply updates then let pre-save hook recalculate totals
+    Object.assign(invoice, req.body)
+    await invoice.save()
 
-    res.json(updated)
+    res.json(invoice)
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 }
 
-// @route   DELETE /api/invoices/:id
 export const deleteInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id)

@@ -52,7 +52,7 @@ const Sidebar = () => {
             transition: 'opacity 0.2s ease, width 0.3s ease'
           }}
         >
-          Fyn<span style={{ color: 'var(--color-primary-bright)' }}>lo</span>
+          Ae<span style={{ color: 'var(--color-primary-bright)' }}>ther</span>
         </span>
         <button
           onClick={() => setCollapsed(!collapsed)}

@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Sidebar, { MobileNav } from './components/Sidebar'
@@ -12,8 +12,12 @@ import Payments from './pages/Payments'
 import Reconciliation from './pages/Reconciliation'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
+import { NotificationProvider } from './context/NotificationContext'
 import Onboarding from './pages/Onboarding'
-{ to: '/customers', label: 'Customers', icon: Users },
+import InstallPrompt from './components/InstallPrompt'
+import Customers from './pages/Customers'
+
+
 
 const AppLayout = ({ children, title }) => (
   <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
@@ -40,7 +44,8 @@ const OnboardingGuard = ({ children }) => {
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
+      <AuthProvider> 
+        <NotificationProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -109,6 +114,8 @@ function App() {
             } />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        <InstallPrompt/>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   )

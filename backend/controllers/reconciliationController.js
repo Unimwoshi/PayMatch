@@ -2,6 +2,7 @@ import Invoice from '../models/Invoice.js'
 import Payment from '../models/Payment.js'
 import ReconciliationMatch from '../models/ReconciliationMatch.js'
 import Fuse from 'fuse.js'
+import notify from '../utils/notify.js'
 
 const getNameScore = (invoiceName, paymentName) => {
   const fuse = new Fuse([invoiceName], { threshold: 0.6, includeScore: true })
@@ -36,6 +37,12 @@ const getMatchStatus = (invoice, payment) => {
   if (payment.amount === invoice.amount) return 'paid'
   if (payment.amount < invoice.amount) return 'partial'
   if (payment.amount > invoice.amount) return 'overpaid'
+}
+
+const formatNaira = (amount) => {
+  if (amount >= 1000000) return `₦${(amount / 1000000).toFixed(1)}M`
+  if (amount >= 1000) return `₦${(amount / 1000).toFixed(0)}K`
+  return `₦${amount}`
 }
 
 export const runReconciliation = async (req, res) => {
@@ -117,6 +124,13 @@ export const runReconciliation = async (req, res) => {
           matchStatus
         })
       }
+
+      await notify(userId, {
+      title: 'Match found',
+      message: `${payment.customerName} — ${formatNaira(payment.amount)} matched to invoice ${bestMatch.invoiceNumber || ''}`,
+      type: 'match_found',
+      link: '/reconciliation'
+      })
     }
 
     res.json({

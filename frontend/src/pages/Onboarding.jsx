@@ -126,7 +126,7 @@ const Onboarding = () => {
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Fyn<span style={{ color: 'var(--color-primary)' }}>lo</span>
+            Ae<span style={{ color: 'var(--color-primary)' }}>ther</span>
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
             Let's set up your business

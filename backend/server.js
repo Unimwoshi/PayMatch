@@ -3,7 +3,6 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
-import mongoSanitize from 'express-mongo-sanitize'
 import connectDB from './config/db.js'
 import { generalLimiter } from './middleware/security.js'
 import logger from './utils/logger.js'
@@ -12,9 +11,11 @@ import authRoutes from './routes/authRoutes.js'
 import invoiceRoutes from './routes/invoiceRoutes.js'
 import paymentRoutes from './routes/paymentRoutes.js'
 import reconciliationRoutes from './routes/reconciliationRoutes.js'
+import notificationRoutes from './routes/notificationRoutes.js'
 
 dotenv.config()
 connectDB()
+
 
 const app = express()
 
@@ -29,7 +30,7 @@ app.use(cors({
 }))
 app.use(express.json({ limit: '10mb' }))
 app.use(cookieParser())
-app.use(mongoSanitize())
+
 app.use(generalLimiter)
 
 app.use('/api/auth', authRoutes)
@@ -37,11 +38,32 @@ app.use('/api/invoices', invoiceRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/reconciliation', reconciliationRoutes)
 app.use('/api/customers', customerRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 app.use((err, req, res, next) => {
   logger.error({ event: 'unhandled_error', error: err.message, stack: err.stack })
   res.status(500).json({ message: 'Something went wrong' })
 })
+
+
+app.use((req, res, next) => {
+  const sanitize = (obj) => {
+    if (!obj || typeof obj !== 'object') return obj;
+    for (const key of Object.keys(obj)) {
+      if (key.startsWith('$') || key.includes('.')) {
+        delete obj[key];
+      } else if (typeof obj[key] === 'object') {
+        sanitize(obj[key]);
+      }
+    }
+    return obj;
+  };
+
+  if (req.body) sanitize(req.body);
+  if (req.params) sanitize(req.params);
+  // intentionally skipping req.query — it's read-only in Express 5
+  next();
+});
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => logger.info({ event: 'server_started', port: PORT }))

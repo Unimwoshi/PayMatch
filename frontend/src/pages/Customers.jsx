@@ -344,8 +344,7 @@ const Customers = () => {
             )}
 
             <div className="flex gap-3">
-              {selected.phone && (
-                
+              {selected.phone && (<a
                   href={`https://wa.me/${selected.phone.replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noreferrer"
