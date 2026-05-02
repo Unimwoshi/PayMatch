@@ -102,9 +102,11 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [showOptional, setShowOptional] = useState(false)
+  const [customers, setCustomers] = useState([])
 
   const [form, setForm] = useState({
     invoiceNumber: '',
+    customerId: '',
     customerName: '',
     customerEmail: '',
     customerAddress: '',
@@ -122,11 +124,35 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
   const [whtRate, setWhtRate] = useState(5)
   const [discount, setDiscount] = useState(0)
   const [discountType, setDiscountType] = useState('fixed')
+  const [duplicateWarning, setDuplicateWarning] = useState(null)
+
+  useEffect(() => {
+    api.get('/customers').then(({ data }) => setCustomers(data)).catch(() => {})
+  }, [])
+
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
     setError('')
   }
+
+  const handleCustomerSelect = (e) => {
+    const customerId = e.target.value
+    const customer = customers.find(c => c._id === customerId)
+    if (customer) {
+      setForm(prev => ({
+          ...prev,
+          customerId,
+          customerName: customer.name,
+          customerEmail: customer.email || prev.customerEmail,
+          customerPhone: customer.phone || prev.customerPhone,
+          customerAddress: customer.address || prev.customerAddress,
+          currency: customer.currency || prev.currency,
+        }))
+      } else {
+        setForm(prev => ({ ...prev, customerId: '' }))
+      }
+    }
 
   const handleLineItemChange = (index, field, value) => {
     const updated = [...lineItems]
@@ -163,6 +189,10 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
   }
 
   const handleSubmit = async () => {
+    if (duplicateWarning) {
+      await forceCreate()
+      return
+    }
     if (!lineItems.some(i => i.description && i.unitPrice)) {
       return setError('Add at least one complete line item')
     }
@@ -172,6 +202,7 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
     try {
       const payload = {
         ...form,
+        customer: form.customerId || null,
         lineItems: lineItems.filter(i => i.description && i.unitPrice).map(i => ({
           description: i.description,
           quantity: Number(i.quantity) || 1,
@@ -188,11 +219,44 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
       onCreated(data)
       onClose()
     } catch (err) {
+      if (err.response?.status === 409 && err.response?.data?.code === 'DUPLICATE_WARNING') {
+        setDuplicateWarning(err.response.data)
+        setSubmitting(false)
+        return
+      }
       setError(err.response?.data?.message || 'Failed to create invoice')
     } finally {
       setSubmitting(false)
     }
   }
+
+  const forceCreate = async () => {
+    setSubmitting(true)
+    setError('')
+    try {
+      const payload = {
+        ...form,
+        customer: form.customerId || null,
+        lineItems: lineItems.filter(i => i.description && i.unitPrice).map(i => ({
+          description: i.description,
+          quantity: Number(i.quantity) || 1,
+          unitPrice: Number(i.unitPrice),
+        })),
+        vatEnabled, vatRate: Number(vatRate),
+        whtEnabled, whtRate: Number(whtRate),
+        discount: Number(discount), discountType,
+        force: true // tell backend to skip duplicate check
+      }
+      const { data } = await api.post('/invoices?force=true', payload)
+      onCreated(data)
+      onClose()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create invoice')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
 
   const sym = { NGN: '₦', USD: '$', GBP: '£', CNY: '¥' }[form.currency] || '₦'
 
@@ -278,6 +342,19 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={labelStyle}>Select existing client</label>
+                  <select
+                    onChange={handleCustomerSelect}
+                    style={inputStyle}
+                    defaultValue=""
+                  >
+                    <option value="">— or type manually below —</option>
+                    {customers.map(c => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label style={labelStyle}>Customer name *</label>
                   <input name="customerName" value={form.customerName} onChange={handleChange}
@@ -531,6 +608,35 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
             </div>
           )}
         </div>
+
+        {duplicateWarning && (
+          <div style={{
+            margin: '0 20px 12px', padding: '12px 14px', borderRadius: 8,
+            backgroundColor: 'var(--color-warning-bg)',
+            border: '1px solid var(--color-warning)',
+          }}>
+            <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--color-warning)', fontWeight: 600 }}>
+              ⚠ Possible duplicate
+            </p>
+            <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--color-text-secondary)' }}>
+              {duplicateWarning.message}
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setDuplicateWarning(null)}
+                style={{ flex: 1, padding: '7px', borderRadius: 7, border: '1px solid var(--color-border)', backgroundColor: 'transparent', fontSize: 12, cursor: 'pointer', color: 'var(--color-text-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={forceCreate}
+                style={{ flex: 1, padding: '7px', borderRadius: 7, border: 'none', backgroundColor: 'var(--color-warning)', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'white' }}
+              >
+                Create anyway
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{

@@ -16,6 +16,8 @@ const navItems = [
   { to: '/reminders',      label: 'Reminders',    icon: Bell },
   { to: '/reconciliation', label: 'Reconcile',    icon: GitMerge },
   { to: '/settings',       label: 'Settings',     icon: Settings },
+  { to: '/tax', label: 'Tax Report', icon: FileText },
+  { to: '/recurring', label: 'Recurring', icon: RefreshCw },
 ]
 
 // Primary 4 shown in mobile bottom nav

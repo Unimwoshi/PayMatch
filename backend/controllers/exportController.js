@@ -3,7 +3,7 @@ import Invoice from '../models/Invoice.js'
 import Payment from '../models/Payment.js'
 import Expense from '../models/Expense.js'
 import Customer from '../models/Customer.js'
-import { Parser } from 'json2csv'
+import { Parser } from '@json2csv/plainjs '
 
 export const exportAllData = async (req, res) => {
   try {

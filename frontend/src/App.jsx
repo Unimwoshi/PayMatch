@@ -19,6 +19,8 @@ import Customers from './pages/Customers'
 import InvoicePreview from './pages/InvoicePreview'
 import Receipts from './pages/Receipts'
 import Reminders from './pages/Reminders'
+import TaxSummary from './pages/TaxSummary'
+import RecurringInvoices from './pages/RecurringInvoices'
 
 
 
@@ -135,6 +137,20 @@ function App() {
             <ProtectedRoute>
               <OnboardingGuard>
                 <AppLayout title="Reminders"><Reminders /></AppLayout>
+              </OnboardingGuard>
+            </ProtectedRoute>
+            } />
+            <Route path="/tax" element={
+            <ProtectedRoute>
+              <OnboardingGuard>
+                <AppLayout title="Tax Summary"><TaxSummary /></AppLayout>
+              </OnboardingGuard>
+            </ProtectedRoute>
+            } />
+            <Route path="/recurring" element={
+            <ProtectedRoute>
+              <OnboardingGuard>
+                <AppLayout title="Recurring Invoices"><RecurringInvoices /></AppLayout>
               </OnboardingGuard>
             </ProtectedRoute>
             } />
