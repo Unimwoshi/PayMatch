@@ -295,6 +295,34 @@ export const getDashboardStats = async (req, res) => {
       sixMonthData.push({ month: label, income, expenses })
     }
 
+    // ── Business Health Score ──────────────────────────────────────────
+    let healthScore = 100
+    let healthFactors = []
+
+    // Factor 1: Invoice payment rate (40 points)
+    const paymentRate = invoiceCounts.total > 0
+      ? (invoiceCounts.paid / invoiceCounts.total) * 100 : 100
+    const paymentPoints = Math.round((paymentRate / 100) * 40)
+    healthFactors.push({ label: 'Invoice payment rate', score: paymentPoints, max: 40 })
+
+    // Factor 2: Outstanding to revenue ratio (30 points)
+    const outstandingRatio = totalInvoiced > 0
+      ? totalOutstanding / totalInvoiced : 0
+    const outstandingPoints = Math.round((1 - Math.min(outstandingRatio, 1)) * 30)
+    healthFactors.push({ label: 'Outstanding ratio', score: outstandingPoints, max: 30 })
+
+    // Factor 3: Expense consistency (30 points)
+    const recentMonths = sixMonthData.slice(-3)
+    const hasExpenseData = recentMonths.some(m => m.expenses > 0)
+    const expensePoints = hasExpenseData
+      ? Math.round((1 - Math.min(totalExpensesThisMonth / Math.max(thisMonthReceived, 1), 1)) * 30)
+      : 30
+    healthFactors.push({ label: 'Cash flow health', score: expensePoints, max: 30 })
+
+    healthScore = paymentPoints + outstandingPoints + expensePoints
+
+    const healthColor = healthScore >= 70 ? 'green' : healthScore >= 40 ? 'amber' : 'red'
+
     res.json({
       totalInvoiced,
       totalReceived,
@@ -307,6 +335,9 @@ export const getDashboardStats = async (req, res) => {
       overdueInvoices,
       expenseCategoryData,
       sixMonthData,
+      healthScore,
+      healthColor,
+      healthFactors,
     })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })

@@ -60,6 +60,21 @@ const userSchema = new mongoose.Schema({
   lastLogin: {
     type: Date
   }
+
+  paymentKeys: {
+    paystack: {
+      secretKey: { type: String },
+      publicKey: { type: String },
+      provider: { type: String },
+    },
+    flutterwave: {
+      secretKey: { type: String },
+      publicKey: { type: String },
+      provider: { type: String },
+    }
+  },
+
+  weeklyEmailEnabled: { type: Boolean, default: true },
 }, { timestamps: true })
 
 userSchema.pre('save', async function () {

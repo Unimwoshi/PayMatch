@@ -15,11 +15,21 @@ import notificationRoutes from './routes/notificationRoutes.js'
 import templateRoutes from './routes/templateRoutes.js'
 import expenseRoutes from './routes/expenseRoutes.js'
 import reminderRoutes from './routes/reminderRoutes.js'
+import { startScheduler } from './services/schedulerService.js'
+import recurringRoutes from './routes/recurringRoutes.js'
+import taxRoutes from './routes/taxRoutes.js'
+import paymentLinkRoutes from './routes/paymentLinkRoutes.js'
+import { exportAllData } from './controllers/exportController.js'
+import protect from './middleware/authMiddleware.js'
+
+
+
+
 
 
 dotenv.config()
 connectDB()
-
+startScheduler()
 
 const app = express()
 
@@ -46,6 +56,10 @@ app.use('/api/notifications', notificationRoutes)
 app.use('/api/templates', templateRoutes)
 app.use('/api/expenses', expenseRoutes)
 app.use('/api/reminders', reminderRoutes)
+app.use('/api/recurring', recurringRoutes)
+app.use('/api/tax', taxRoutes)
+app.use('/api/payment-links', paymentLinkRoutes)
+app.get('/api/export/all', protect, exportAllData)
 
 app.use((err, req, res, next) => {
   logger.error({ event: 'unhandled_error', error: err.message, stack: err.stack })

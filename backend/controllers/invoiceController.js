@@ -3,41 +3,70 @@ import User from '../models/User.js'
 import notify from '../utils/notify.js'
 import { generateClassicPDF } from '../services/pdfService.js'
 import Template from '../models/Template.js'
+import { recalculateCustomerStats } from './customerController.js'
+import { getExchangeRates } from '../services/fxService.js'
 
 export const createInvoice = async (req, res) => {
   try {
     const {
-      invoiceNumber,
-      customerName,
-      customerEmail,
-      customerAddress,
-      customerPhone,
-      lineItems,
-      vatEnabled,
-      vatRate,
-      whtEnabled,
-      whtRate,
-      discount,
-      discountType,
-      currency,
-      issueDate,
-      dueDate,
-      notes,
-      templateId
+      invoiceNumber, customerName, customerEmail, customerAddress,
+      customerPhone, customer, lineItems, vatEnabled, vatRate,
+      whtEnabled, whtRate, discount, discountType, currency,
+      issueDate, dueDate, notes, templateId
     } = req.body
 
     if (!customerName || !issueDate || !lineItems?.length) {
       return res.status(400).json({ message: 'Customer name, issue date and at least one line item are required' })
     }
 
-    // Snapshot bank details from user profile at time of invoice creation
+    const forceCreate = req.query.force === 'true'
+
+    // ── Duplicate detection ──────────────────────────────────────────
+    if (!forceCreate && customer) {
+      const subtotal = lineItems.reduce((sum, item) =>
+        sum + (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0), 0)
+
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+      const similar = await Invoice.findOne({
+        user: req.user._id,
+        customer,
+        issueDate: { $gte: thirtyDaysAgo },
+        amount: { $gte: subtotal * 0.9, $lte: subtotal * 1.1 }
+      })
+
+      if (similar) {
+        return res.status(409).json({
+          message: `You may have already invoiced ${customerName} for a similar amount on ${new Date(similar.issueDate).toLocaleDateString('en-NG')}. Create anyway?`,
+          code: 'DUPLICATE_WARNING',
+          existingInvoice: {
+            id: similar._id,
+            invoiceNumber: similar.invoiceNumber,
+            amount: similar.amount,
+            issueDate: similar.issueDate,
+          }
+        })
+      }
+    }
+
+  
+
+    // ── FX rate snapshot ─────────────────────────────────────────────
     const user = await User.findById(req.user._id)
+    let exchangeRateAtCreation = 1
+    if (currency && currency !== 'NGN') {
+      const rates = await getExchangeRates()
+      exchangeRateAtCreation = rates[currency] || 1
+    }
+
     const bankName = user.businessDetails?.bankName || ''
     const accountNumber = user.businessDetails?.accountNumber || ''
     const accountName = user.businessDetails?.accountName || ''
 
     const invoice = await Invoice.create({
       user: req.user._id,
+      customer: customer || null,
       invoiceNumber,
       customerName,
       customerEmail,
@@ -51,6 +80,7 @@ export const createInvoice = async (req, res) => {
       discount: discount ?? 0,
       discountType: discountType ?? 'fixed',
       currency: currency || user.businessDetails?.currency || 'NGN',
+      exchangeRateAtCreation,
       issueDate,
       dueDate,
       bankName,
@@ -60,6 +90,10 @@ export const createInvoice = async (req, res) => {
       templateId: templateId || 'classic',
       source: 'manual'
     })
+
+    if (invoice.customer) {
+      await recalculateCustomerStats(invoice.customer, req.user._id)
+    }
 
     await notify(req.user._id, {
       title: 'Invoice created',
@@ -73,7 +107,6 @@ export const createInvoice = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 }
-
 export const getInvoices = async (req, res) => {
   try {
     const invoices = await Invoice.find({ user: req.user._id }).sort({ createdAt: -1 })
@@ -116,6 +149,10 @@ export const updateInvoice = async (req, res) => {
     // Apply updates then let pre-save hook recalculate totals
     Object.assign(invoice, req.body)
     await invoice.save()
+
+    if (invoice.customer) {
+      await recalculateCustomerStats(invoice.customer, req.user._id)
+    }
 
     res.json(invoice)
   } catch (error) {

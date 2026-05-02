@@ -1,4 +1,6 @@
 import Payment from '../models/Payment.js'
+import { recalculateCustomerStats } from './customerController.js'
+
 
 // @route   POST /api/payments
 export const createPayment = async (req, res) => {
@@ -19,6 +21,13 @@ export const createPayment = async (req, res) => {
       source: source || 'manual',
       status: 'unmatched'
     })
+
+    if (payment.invoice) {
+      const linkedInvoice = await Invoice.findById(payment.invoice)
+      if (linkedInvoice?.customer) {
+        await recalculateCustomerStats(linkedInvoice.customer, req.user._id)
+      }
+    }
 
     res.status(201).json(payment)
   } catch (error) {

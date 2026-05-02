@@ -13,6 +13,11 @@ const invoiceSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  customer: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Customer',
+  default: null
+},
   invoiceNumber: { type: String, trim: true },
   customerName: { type: String, required: true, trim: true },
   customerEmail: { type: String, trim: true },
@@ -39,9 +44,16 @@ const invoiceSchema = new mongoose.Schema({
   bankName: { type: String, trim: true },
   accountNumber: { type: String, trim: true },
   accountName: { type: String, trim: true },
+  exchangeRateAtCreation: { type: Number, default: 1 },
+  fxGainLoss: { type: Number, default: 0 },
 
   notes: { type: String, trim: true },
   templateId: { type: String, default: 'classic' },
+  isRecurring: { type: Boolean, default: false },
+  recurringId: { type: mongoose.Schema.Types.ObjectId, ref: 'RecurringInvoice', default: null },
+  paymentLink: { type: String },
+  paymentReference: { type: String },
+  paymentProvider: { type: String, enum: ['paystack', 'flutterwave'], default: null },
 
   status: {
     type: String,
