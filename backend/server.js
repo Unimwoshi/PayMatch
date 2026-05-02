@@ -12,6 +12,10 @@ import invoiceRoutes from './routes/invoiceRoutes.js'
 import paymentRoutes from './routes/paymentRoutes.js'
 import reconciliationRoutes from './routes/reconciliationRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
+import templateRoutes from './routes/templateRoutes.js'
+import expenseRoutes from './routes/expenseRoutes.js'
+import reminderRoutes from './routes/reminderRoutes.js'
+
 
 dotenv.config()
 connectDB()
@@ -39,6 +43,9 @@ app.use('/api/payments', paymentRoutes)
 app.use('/api/reconciliation', reconciliationRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/templates', templateRoutes)
+app.use('/api/expenses', expenseRoutes)
+app.use('/api/reminders', reminderRoutes)
 
 app.use((err, req, res, next) => {
   logger.error({ event: 'unhandled_error', error: err.message, stack: err.stack })

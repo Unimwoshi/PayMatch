@@ -1,5 +1,6 @@
 import Invoice from '../models/Invoice.js'
 import Payment from '../models/Payment.js'
+import Expense from '../models/Expense.js'
 import ReconciliationMatch from '../models/ReconciliationMatch.js'
 import Fuse from 'fuse.js'
 import notify from '../utils/notify.js'
@@ -210,50 +211,103 @@ export const rejectMatch = async (req, res) => {
 export const getDashboardStats = async (req, res) => {
   try {
     const userId = req.user._id
+    const now = new Date()
 
-    const invoices = await Invoice.find({ user: userId })
-    const payments = await Payment.find({ user: userId })
+    // Current month boundaries
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
 
-    const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.amount, 0)
-    const totalReceived = payments.reduce((sum, pay) => sum + pay.amount, 0)
-    const totalOutstanding = invoices.reduce((sum, inv) => sum + inv.remainingBalance, 0)
+    // ── Invoice stats ──────────────────────────────────────────────────
+    const allInvoices = await Invoice.find({ user: userId })
+    const totalInvoiced = allInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0)
+    const totalOutstanding = allInvoices
+      .filter(inv => inv.status !== 'paid')
+      .reduce((sum, inv) => sum + (inv.remainingBalance || 0), 0)
 
-    const unpaidCount = invoices.filter(inv => inv.status === 'unpaid').length
-    const partialCount = invoices.filter(inv => inv.status === 'partial').length
-    const paidCount = invoices.filter(inv => inv.status === 'paid').length
+    const overdueInvoices = allInvoices
+      .filter(inv => inv.dueDate && new Date(inv.dueDate) < now && inv.status !== 'paid')
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      .slice(0, 5)
+      .map(inv => ({
+        id: inv._id,
+        customerName: inv.customerName,
+        invoiceNumber: inv.invoiceNumber,
+        remainingBalance: inv.remainingBalance,
+        daysOverdue: Math.floor((now - new Date(inv.dueDate)) / (1000 * 60 * 60 * 24)),
+        currency: inv.currency,
+      }))
 
-    const today = new Date()
-    const overdueInvoices = invoices.filter(inv =>
-      inv.status !== 'paid' && inv.dueDate && new Date(inv.dueDate) < today
+    const invoiceCounts = {
+      total: allInvoices.length,
+      paid: allInvoices.filter(i => i.status === 'paid').length,
+      partial: allInvoices.filter(i => i.status === 'partial').length,
+      unpaid: allInvoices.filter(i => i.status === 'unpaid').length,
+      overdue: overdueInvoices.length,
+    }
+
+    // ── Payment stats ──────────────────────────────────────────────────
+    const allPayments = await Payment.find({ user: userId })
+    const totalReceived = allPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+    const thisMonthReceived = allPayments
+      .filter(p => new Date(p.paymentDate) >= monthStart && new Date(p.paymentDate) <= monthEnd)
+      .reduce((sum, p) => sum + (p.amount || 0), 0)
+
+    const paymentCounts = {
+      total: allPayments.length,
+      matched: allPayments.filter(p => p.status === 'matched').length,
+      unmatched: allPayments.filter(p => p.status === 'unmatched').length,
+    }
+
+    // ── Expense stats ──────────────────────────────────────────────────
+    const allExpenses = await Expense.find({ user: userId, confirmed: true })
+    const thisMonthExpenses = allExpenses.filter(e =>
+      new Date(e.date) >= monthStart && new Date(e.date) <= monthEnd
     )
+    const totalExpensesThisMonth = thisMonthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0)
+
+    // Expense breakdown by category
+    const expenseByCategory = thisMonthExpenses.reduce((acc, exp) => {
+      acc[exp.category] = (acc[exp.category] || 0) + exp.amount
+      return acc
+    }, {})
+    const expenseCategoryData = Object.entries(expenseByCategory)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+
+    // Net cash position this month
+    const netCashPosition = thisMonthReceived - totalExpensesThisMonth
+
+    // ── 6-month breakdown ──────────────────────────────────────────────
+    const sixMonthData = []
+    for (let i = 5; i >= 0; i--) {
+      const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59)
+      const label = mStart.toLocaleString('en-NG', { month: 'short' })
+
+      const income = allPayments
+        .filter(p => new Date(p.paymentDate) >= mStart && new Date(p.paymentDate) <= mEnd)
+        .reduce((sum, p) => sum + p.amount, 0)
+
+      const expenses = allExpenses
+        .filter(e => new Date(e.date) >= mStart && new Date(e.date) <= mEnd)
+        .reduce((sum, e) => sum + e.amount, 0)
+
+      sixMonthData.push({ month: label, income, expenses })
+    }
 
     res.json({
       totalInvoiced,
       totalReceived,
       totalOutstanding,
-      invoiceCounts: {
-        total: invoices.length,
-        unpaid: unpaidCount,
-        partial: partialCount,
-        paid: paidCount,
-        overdue: overdueInvoices.length
-      },
-      paymentCounts: {
-        total: payments.length,
-        matched: payments.filter(p => p.status === 'matched').length,
-        unmatched: payments.filter(p => p.status === 'unmatched').length
-      },
-      overdueInvoices: overdueInvoices.map(inv => ({
-        id: inv._id,
-        invoiceNumber: inv.invoiceNumber,
-        customerName: inv.customerName,
-        amount: inv.amount,
-        remainingBalance: inv.remainingBalance,
-        dueDate: inv.dueDate,
-        daysOverdue: Math.floor((today - new Date(inv.dueDate)) / (1000 * 60 * 60 * 24))
-      }))
+      totalExpensesThisMonth,
+      thisMonthReceived,
+      netCashPosition,
+      invoiceCounts,
+      paymentCounts,
+      overdueInvoices,
+      expenseCategoryData,
+      sixMonthData,
     })
-
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import api from '../api/axios'
 import { Plus } from 'lucide-react'
 import CreateInvoiceModal from '../components/CreateInvoiceModal.jsx'
+import { useNavigate } from 'react-router-dom'
 
 const formatCurrency = (amount, currency = 'NGN') => {
   const symbols = { NGN: '₦', USD: '$', GBP: '£', CNY: '¥' }
@@ -22,6 +23,7 @@ const Invoices = () => {
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const navigate = useNavigate()
 
   const fetchInvoices = async () => {
     try {
@@ -85,8 +87,11 @@ const Invoices = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr style={{ backgroundColor: 'var(--color-bg-card)', borderBottom: '1px solid var(--color-border)' }}>
-                  {['Invoice #', 'Customer', 'Amount', 'Balance', 'Due date', 'Status'].map((h) => (
+                <tr style={{
+                  backgroundColor: 'var(--color-bg-card)',
+                  borderBottom: '1px solid var(--color-border)'
+                }}>
+                  {['Invoice #', 'Customer', 'Amount', 'Balance', 'Due date', 'Status', ''].map((h) => (
                     <th
                       key={h}
                       className="text-left px-5 py-3.5 text-xs font-medium uppercase tracking-wider"
@@ -103,8 +108,10 @@ const Invoices = () => {
                     key={inv._id}
                     style={{
                       backgroundColor: i % 2 === 0 ? 'var(--color-bg-card)' : 'var(--color-bg)',
-                      borderBottom: '1px solid var(--color-border)'
+                      borderBottom: '1px solid var(--color-border)',
+                      cursor: 'pointer',
                     }}
+                    onClick={() => navigate(`/invoices/${inv._id}/preview`)}
                   >
                     <td className="px-5 py-4 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                       {inv.invoiceNumber || '—'}
@@ -131,6 +138,9 @@ const Invoices = () => {
                       >
                         {inv.status}
                       </span>
+                    </td>
+                    <td className="px-5 py-4 text-sm" style={{ color: 'var(--color-primary)' }}>
+                      View →
                     </td>
                   </tr>
                 ))}

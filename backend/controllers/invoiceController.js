@@ -1,6 +1,8 @@
 import Invoice from '../models/Invoice.js'
 import User from '../models/User.js'
 import notify from '../utils/notify.js'
+import { generateClassicPDF } from '../services/pdfService.js'
+import Template from '../models/Template.js'
 
 export const createInvoice = async (req, res) => {
   try {
@@ -135,6 +137,36 @@ export const deleteInvoice = async (req, res) => {
 
     await invoice.deleteOne()
     res.json({ message: 'Invoice deleted' })
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+}
+
+export const generateInvoicePDF = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id)
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' })
+    if (invoice.user.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized' })
+    }
+
+    const user = await User.findById(req.user._id).select('-password -refreshTokens')
+
+    // Get user's default template field positions if any
+    const defaultTemplate = await Template.findOne({ user: req.user._id, isDefault: true })
+    const fieldPositions = defaultTemplate?.fieldPositions?.length
+      ? defaultTemplate.fieldPositions
+      : null
+
+    const pdfBuffer = await generateClassicPDF(invoice, user, fieldPositions)
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${invoice.invoiceNumber || invoice._id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    })
+
+    res.send(pdfBuffer)
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }

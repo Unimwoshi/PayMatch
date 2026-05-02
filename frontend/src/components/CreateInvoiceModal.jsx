@@ -166,7 +166,7 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
     if (!lineItems.some(i => i.description && i.unitPrice)) {
       return setError('Add at least one complete line item')
     }
-
+   
     setSubmitting(true)
     setError('')
     try {
@@ -184,7 +184,6 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
         discount: Number(discount),
         discountType,
       }
-
       const { data } = await api.post('/invoices', payload)
       onCreated(data)
       onClose()

@@ -6,6 +6,11 @@ const paymentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  invoice: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Invoice',
+    default: null
+  },
   customerName: {
     type: String,
     required: true,
@@ -37,10 +42,13 @@ const paymentSchema = new mongoose.Schema({
     enum: ['matched', 'unmatched', 'partial'],
     default: 'unmatched'
   },
-  fileUrl: {
-    type: String
-  }
+  // Receipt verification fields
+  receiptUrl: { type: String },
+  receiptExtractedAmount: { type: Number, default: null },
+  receiptConfidence: { type: Number, default: 0 },
+  receiptConfirmed: { type: Boolean, default: false },
+  receiptMismatch: { type: Boolean, default: false },
 }, { timestamps: true })
 
 const Payment = mongoose.model('Payment', paymentSchema)
-export default Payment;
+export default Payment

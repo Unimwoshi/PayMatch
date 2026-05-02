@@ -4,7 +4,8 @@ import {
   getInvoices,
   getInvoiceById,
   updateInvoice,
-  deleteInvoice
+  deleteInvoice,
+  generateInvoicePDF
 } from '../controllers/invoiceController.js'
 import protect from '../middleware/authMiddleware.js'
 import { validate, invoiceSchema } from '../utils/validation.js'
@@ -21,5 +22,7 @@ router.route('/:id')
   .get(getInvoiceById)
   .put(updateInvoice)
   .delete(deleteInvoice)
+
+router.get('/:id/pdf', protect, generateInvoicePDF)
 
 export default router

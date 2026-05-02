@@ -16,6 +16,9 @@ import { NotificationProvider } from './context/NotificationContext'
 import Onboarding from './pages/Onboarding'
 import InstallPrompt from './components/InstallPrompt'
 import Customers from './pages/Customers'
+import InvoicePreview from './pages/InvoicePreview'
+import Receipts from './pages/Receipts'
+import Reminders from './pages/Reminders'
 
 
 
@@ -64,6 +67,15 @@ function App() {
               </OnboardingGuard>
             </ProtectedRoute>
           } />
+          <Route path="/invoices/:id/preview" element={
+             <ProtectedRoute>
+              <OnboardingGuard>
+                <AppLayout title="Invoice Preview">
+                  <InvoicePreview />
+                </AppLayout>
+              </OnboardingGuard>
+            </ProtectedRoute>
+            } />
           <Route path="/invoices" element={
             <ProtectedRoute>
               <OnboardingGuard>
@@ -111,6 +123,20 @@ function App() {
                   <AppLayout title="Customers"><Customers /></AppLayout>
                 </OnboardingGuard>
               </ProtectedRoute>
+            } />
+            <Route path="/receipts" element={
+            <ProtectedRoute>
+              <OnboardingGuard>
+                <AppLayout title="Receipts"><Receipts /></AppLayout>
+              </OnboardingGuard>
+            </ProtectedRoute>
+            } />
+            <Route path="/reminders" element={
+            <ProtectedRoute>
+              <OnboardingGuard>
+                <AppLayout title="Reminders"><Reminders /></AppLayout>
+              </OnboardingGuard>
+            </ProtectedRoute>
             } />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
