@@ -1,6 +1,6 @@
 import Payment from '../models/Payment.js'
 import { recalculateCustomerStats } from './customerController.js'
-
+import { checkPaymentMismatch } from '../services/riskService.js'
 
 // @route   POST /api/payments
 export const createPayment = async (req, res) => {
@@ -28,8 +28,12 @@ export const createPayment = async (req, res) => {
         await recalculateCustomerStats(linkedInvoice.customer, req.user._id)
       }
     }
+    if (payload.invoice && linkedInvoice) {
+      await checkPaymentMismatch(linkedInvoice.amount, payment.amount, req.user._id, linkedInvoice._id)
+    }
 
     res.status(201).json(payment)
+    await audit(req, 'payment:created', { entity: 'payment', entityId: payment._id, metadata: { amount: payment.amount, customerName: payment.customerName } })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
@@ -104,6 +108,7 @@ export const deletePayment = async (req, res) => {
 
     await payment.deleteOne()
     res.json({ message: 'Payment deleted' })
+    await audit(req, 'payment:deleted', { entity: 'payment', entityId: payment._id, metadata: { amount: payment.amount, customerName: payment.customerName } })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }

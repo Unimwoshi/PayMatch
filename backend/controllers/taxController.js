@@ -2,7 +2,7 @@ import Invoice from '../models/Invoice.js'
 import Payment from '../models/Payment.js'
 import Expense from '../models/Expense.js'
 import PDFDocument from 'pdfkit'
-import { Parser } from '@json2csv/plainjs '
+import {Parser} from '@json2csv/plainjs'
 
 const getPeriodBoundaries = (period, from, to) => {
   const now = new Date()

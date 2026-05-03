@@ -5,6 +5,7 @@ import { generateClassicPDF } from '../services/pdfService.js'
 import Template from '../models/Template.js'
 import { recalculateCustomerStats } from './customerController.js'
 import { getExchangeRates } from '../services/fxService.js'
+import { calculateRiskScore } from '../services/riskService.js'
 
 export const createInvoice = async (req, res) => {
   try {
@@ -103,6 +104,9 @@ export const createInvoice = async (req, res) => {
     })
 
     res.status(201).json(invoice)
+    await audit(req, 'auth:login', { metadata: { email: user.email } })
+  
+  calculateRiskScore(req.user._id).catch(err => logger.error({ event: 'risk_check_error', error: err.message }))
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
@@ -171,6 +175,7 @@ export const deleteInvoice = async (req, res) => {
     if (invoice.user.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'Not authorized' })
     }
+    await audit(req, 'invoice:deleted', { entity: 'invoice', entityId: invoice._id, metadata: { customerName: invoice.customerName, amount: invoice.amount } })
 
     await invoice.deleteOne()
     res.json({ message: 'Invoice deleted' })
@@ -204,6 +209,7 @@ export const generateInvoicePDF = async (req, res) => {
     })
 
     res.send(pdfBuffer)
+    await audit(req, 'invoice:pdf_generated', { entity: 'invoice', entityId: invoice._id })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }

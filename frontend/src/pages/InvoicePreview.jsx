@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import {
   ArrowLeft, Download, Layout, Upload,
@@ -279,12 +279,13 @@ const InvoicePreview = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const canvasRef = useRef(null)
+  const mode = searchParams.get('mode') || 'view'
 
   const [invoice, setInvoice] = useState(null)
   const [user, setUser] = useState(null)
   const [templates, setTemplates] = useState([])
   const [selectedTemplate, setSelectedTemplate] = useState(null)
-  const [view, setView] = useState('picker') // 'picker' | 'editor' | 'preview'
+  const [view, setView] = useState(mode === 'edit' ? 'picker' : 'invoice-view') // 'picker' | 'editor' | 'preview'
   const [fields, setFields] = useState([])
   const [selectedField, setSelectedField] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -293,6 +294,7 @@ const InvoicePreview = () => {
   const [saved, setSaved] = useState(false)
   const [scale, setScale] = useState(1)
   const [uploadingTemplate, setUploadingTemplate] = useState(false)
+  
 
   // Scale canvas to fit viewport
   useEffect(() => {
@@ -330,7 +332,12 @@ const InvoicePreview = () => {
         if (defaultTpl) {
           setSelectedTemplate(defaultTpl)
           initFields(defaultTpl.fieldPositions)
-          setView('editor')
+          const modeParam = searchParams.get('mode')
+          if (modeParam === 'edit') {
+            setView(defaultTpl ? 'editor' : 'picker')
+          } else {
+            setView('invoice-view')
+          }
         }
       } catch (err) {
         console.error(err)
@@ -375,7 +382,9 @@ const InvoicePreview = () => {
       const positions = fields.map(({ key, label, x, y, width, fontSize, fontWeight, align }) => ({
         key, label, x, y, width, fontSize, fontWeight, align
       }))
-      await api.put(`/templates/${selectedTemplate._id}/positions`, { fieldPositions: positions })
+      const { data } = await api.put(`/templates/${selectedTemplate._id}/positions`, { fieldPositions: positions })
+      // Update selectedTemplate with the returned template (might be a new user copy)
+      setSelectedTemplate(data)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } catch (err) {
@@ -490,6 +499,189 @@ const InvoicePreview = () => {
           </button>
         </div>
       </div>
+
+      {/* ── Invoice View (read-only rendered preview) ── */}
+      {view === 'invoice-view' && (
+        <div style={{ flex: 1, overflowY: 'auto', padding: 32, display: 'flex', justifyContent: 'center', backgroundColor: '#E5E7EB' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, width: '100%', maxWidth: A4_WIDTH_PX + 64 }}>
+            
+            {/* Action bar above the invoice */}
+            <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-end' }}>
+              {view === 'invoice-view' && (
+                <button
+                  onClick={() => setView(selectedTemplate ? 'editor' : 'picker')}
+                  style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid var(--color-border)', backgroundColor: 'transparent', fontSize: 12, color: 'var(--color-text-secondary)', cursor: 'pointer' }}
+                >
+                  Edit layout
+                </button>
+              )}
+            </div>
+
+            {/* A4 rendered invoice */}
+            <div style={{
+              width: A4_WIDTH_PX * scale,
+              backgroundColor: 'white',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+              borderRadius: 2,
+              overflow: 'hidden',
+              position: 'relative',
+            }}>
+              {/* Background */}
+              {selectedTemplate?.backgroundUrl ? (
+                <img src={selectedTemplate.backgroundUrl} alt="Template"
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.15 }} />
+              ) : (
+                <ClassicBackground scale={scale} />
+              )}
+
+              {/* Rendered fields */}
+              <div style={{ position: 'relative', padding: `${120 * scale}px ${48 * scale}px ${48 * scale}px` }}>
+                
+                {/* Business info in header */}
+                <div style={{ position: 'absolute', top: 36 * scale, left: 48 * scale }}>
+                  <p style={{ margin: 0, fontSize: 18 * scale, fontWeight: 800, color: 'white' }}>
+                    {user?.businessName}
+                  </p>
+                  <p style={{ margin: '4px 0 0', fontSize: 8 * scale, color: 'rgba(255,255,255,0.8)' }}>
+                    {[user?.businessDetails?.address, user?.businessDetails?.phone, user?.email].filter(Boolean).join('  ·  ')}
+                  </p>
+                </div>
+
+                {/* Invoice number + dates */}
+                <div style={{ marginTop: 20 * scale, marginBottom: 16 * scale }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 24 * scale, fontWeight: 800, color: 'var(--color-text-primary)' }}>INVOICE</p>
+                      <p style={{ margin: '4px 0 0', fontSize: 11 * scale, color: 'var(--color-text-muted)' }}>
+                        #{invoice?.invoiceNumber || 'N/A'}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ margin: 0, fontSize: 10 * scale, color: 'var(--color-text-muted)' }}>
+                        Issue date: {invoice?.issueDate ? new Date(invoice.issueDate).toLocaleDateString('en-NG') : '—'}
+                      </p>
+                      <p style={{ margin: '4px 0 0', fontSize: 10 * scale, color: 'var(--color-text-muted)' }}>
+                        Due date: {invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString('en-NG') : '—'}
+                      </p>
+                      <span style={{
+                        display: 'inline-block', marginTop: 6,
+                        padding: '2px 8px', borderRadius: 10, fontSize: 10 * scale, fontWeight: 600,
+                        backgroundColor: invoice?.status === 'paid' ? 'var(--color-success-bg)' : 'var(--color-warning-bg)',
+                        color: invoice?.status === 'paid' ? 'var(--color-success)' : 'var(--color-warning)',
+                      }}>
+                        {invoice?.status?.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: 1, backgroundColor: 'var(--color-border)', marginBottom: 16 * scale }} />
+
+                {/* Bill to */}
+                <div style={{ marginBottom: 24 * scale }}>
+                  <p style={{ margin: '0 0 6px', fontSize: 8 * scale, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>BILL TO</p>
+                  <p style={{ margin: 0, fontSize: 13 * scale, fontWeight: 700, color: 'var(--color-text-primary)' }}>{invoice?.customerName}</p>
+                  {invoice?.customerAddress && <p style={{ margin: '2px 0 0', fontSize: 9 * scale, color: 'var(--color-text-muted)' }}>{invoice.customerAddress}</p>}
+                  {invoice?.customerEmail && <p style={{ margin: '2px 0 0', fontSize: 9 * scale, color: 'var(--color-text-muted)' }}>{invoice.customerEmail}</p>}
+                  {invoice?.customerPhone && <p style={{ margin: '2px 0 0', fontSize: 9 * scale, color: 'var(--color-text-muted)' }}>{invoice.customerPhone}</p>}
+                </div>
+
+                {/* Line items table */}
+                <div style={{ marginBottom: 20 * scale }}>
+                  {/* Header */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '1fr 60px 100px 100px',
+                    gap: 8, padding: `${8 * scale}px ${10 * scale}px`,
+                    backgroundColor: '#F3F4F6', borderRadius: '4px 4px 0 0',
+                  }}>
+                    {['Description', 'Qty', 'Unit price', 'Subtotal'].map(h => (
+                      <p key={h} style={{ margin: 0, fontSize: 8 * scale, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</p>
+                    ))}
+                  </div>
+
+                  {/* Rows */}
+                  {(invoice?.lineItems?.length > 0) ? (
+                    invoice?.lineItems || []).map((item, i) => {
+                    const subtotal = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)
+                    const sym = { NGN: '₦', USD: '$', GBP: '£', CNY: '¥' }[invoice?.currency] || '₦'}
+                  ):
+                (
+                  <div style={{ padding: `${12 * scale}px ${10 * scale}px`, fontSize: 10 * scale, color: 'var(--color-text-muted)' }}>
+                    No line items recorded
+                  </div>
+                )}
+                      <div key={i} style={{
+                        display: 'grid', gridTemplateColumns: '1fr 60px 100px 100px',
+                        gap: 8, padding: `${8 * scale}px ${10 * scale}px`,
+                        backgroundColor: i % 2 === 0 ? 'white' : '#FAFAFA',
+                        borderBottom: '1px solid #F3F4F6',
+                      }}>
+                        <p style={{ margin: 0, fontSize: 10 * scale, color: 'var(--color-text-primary)' }}>{item.description}</p>
+                        <p style={{ margin: 0, fontSize: 10 * scale, color: 'var(--color-text-secondary)', textAlign: 'center' }}>{item.quantity}</p>
+                        <p style={{ margin: 0, fontSize: 10 * scale, color: 'var(--color-text-secondary)', textAlign: 'right' }}>{sym}{Number(item.unitPrice).toLocaleString('en-NG')}</p>
+                        <p style={{ margin: 0, fontSize: 10 * scale, fontWeight: 600, color: 'var(--color-text-primary)', textAlign: 'right' }}>{sym}{subtotal.toLocaleString('en-NG')}</p>
+                      </div>
+                    
+                  
+                </div>
+
+                {/* Totals */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 * scale }}>
+                  <div style={{ width: 220 * scale }}>
+                    {[
+                      { label: 'Subtotal', value: invoice?.subtotal },
+                      ...(invoice?.discount > 0 ? [{ label: 'Discount', value: -invoice.discountAmount }] : []),
+                      ...(invoice?.vatEnabled ? [{ label: `VAT (${invoice.vatRate}%)`, value: invoice.vatAmount }] : []),
+                      ...(invoice?.whtEnabled ? [{ label: `WHT (${invoice.whtRate}%)`, value: -invoice.whtAmount }] : []),
+                    ].map(row => {
+                      const sym = { NGN: '₦', USD: '$', GBP: '£', CNY: '¥' }[invoice?.currency] || '₦'
+                      return (
+                        <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: `${4 * scale}px 0` }}>
+                          <span style={{ fontSize: 9 * scale, color: 'var(--color-text-muted)' }}>{row.label}</span>
+                          <span style={{ fontSize: 9 * scale, color: 'var(--color-text-secondary)' }}>
+                            {row.value < 0 ? `−${sym}${Math.abs(row.value).toLocaleString('en-NG')}` : `${sym}${Number(row.value || 0).toLocaleString('en-NG')}`}
+                          </span>
+                        </div>
+                      )
+                    })}
+                    {/* Grand total */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: `${8 * scale}px ${10 * scale}px`, backgroundColor: '#2563EB', borderRadius: 6, marginTop: 8 }}>
+                      <span style={{ fontSize: 11 * scale, fontWeight: 700, color: 'white' }}>TOTAL</span>
+                      <span style={{ fontSize: 11 * scale, fontWeight: 700, color: 'white' }}>
+                        {({ NGN: '₦', USD: '$', GBP: '£', CNY: '¥' }[invoice?.currency] || '₦')}{Number(invoice?.amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bank details */}
+                {(invoice?.bankName || invoice?.accountNumber) && (
+                  <div style={{ padding: `${12 * scale}px ${14 * scale}px`, backgroundColor: '#F9FAFB', borderRadius: 8, marginBottom: 16 * scale }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 8 * scale, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>PAYMENT DETAILS</p>
+                    {invoice.bankName && <p style={{ margin: '2px 0', fontSize: 9 * scale, color: 'var(--color-text-secondary)' }}>Bank: {invoice.bankName}</p>}
+                    {invoice.accountNumber && <p style={{ margin: '2px 0', fontSize: 9 * scale, color: 'var(--color-text-secondary)' }}>Account No: {invoice.accountNumber}</p>}
+                    {invoice.accountName && <p style={{ margin: '2px 0', fontSize: 9 * scale, color: 'var(--color-text-secondary)' }}>Account Name: {invoice.accountName}</p>}
+                  </div>
+                )}
+
+                {/* Notes */}
+                {invoice?.notes && (
+                  <div>
+                    <p style={{ margin: '0 0 4px', fontSize: 8 * scale, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>NOTES</p>
+                    <p style={{ margin: 0, fontSize: 9 * scale, color: 'var(--color-text-muted)' }}>{invoice.notes}</p>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div style={{ marginTop: 24 * scale, paddingTop: 12 * scale, borderTop: '1px solid var(--color-border)', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 7 * scale, color: 'var(--color-text-muted)' }}>Powered by Aether</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Body */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>

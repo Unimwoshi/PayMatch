@@ -126,6 +126,7 @@ export const getCustomerById = async (req, res) => {
     }).sort({ createdAt: -1 }).limit(5)
 
     res.json({ ...customer.toObject(), recentInvoices: invoices })
+    await audit(req, 'customer:created', { entity: 'customer', entityId: customer._id, metadata: { name: customer.name } })
   } catch (error) {
     res.status(500).json({ message: 'Server error' })
   }

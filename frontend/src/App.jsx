@@ -21,6 +21,7 @@ import Receipts from './pages/Receipts'
 import Reminders from './pages/Reminders'
 import TaxSummary from './pages/TaxSummary'
 import RecurringInvoices from './pages/RecurringInvoices'
+import Admin from './pages/Admin'
 
 
 
@@ -154,6 +155,13 @@ function App() {
               </OnboardingGuard>
             </ProtectedRoute>
             } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AppLayout title="Admin">
+                  <Admin />
+                </AppLayout>
+              </ProtectedRoute>
+              } />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
         <InstallPrompt/>

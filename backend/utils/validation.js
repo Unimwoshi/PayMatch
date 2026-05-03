@@ -33,6 +33,8 @@ export const loginSchema = Joi.object({
 })
 export const invoiceSchema = Joi.object({
   invoiceNumber: Joi.string().max(50).optional().allow(''),
+  customerId: Joi.string().max(50).optional().allow(''),
+  customer: Joi.string().max(500).optional().allow(''),
   customerName: Joi.string().min(1).max(100).required().messages({
     'any.required': 'Customer name is required'
   }),

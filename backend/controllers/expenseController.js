@@ -1,6 +1,7 @@
 import Expense from '../models/Expense.js'
 import { receiptUploader } from '../config/cloudinary.js'
 import notify from '../utils/notify.js'
+import { checkDuplicateReceipt } from '../services/riskService.js'
 
 // Vendor classification rules
 const VENDOR_RULES = [
@@ -71,6 +72,7 @@ export const createExpense = async (req, res) => {
     })
 
     res.status(201).json(expense)
+    await audit(req, 'expense:created', { entity: 'expense', entityId: expense._id, metadata: { amount: expense.amount, vendor: expense.vendor } })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
@@ -80,6 +82,7 @@ export const createExpense = async (req, res) => {
 export const uploadReceipt = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' })
+    const { isDuplicate, hash } = await checkDuplicateReceipt(req.file.buffer, req.user._id)
 
     // Upload to Cloudinary
     const result = await receiptUploader.upload(req.file.buffer, req.file.mimetype)
@@ -90,6 +93,7 @@ export const uploadReceipt = async (req, res) => {
       receiptUrl: result.secure_url,
       message: 'Receipt uploaded. Run OCR and send extracted data.'
     })
+    
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
@@ -126,6 +130,7 @@ export const createFromOCR = async (req, res) => {
     })
 
     res.status(201).json(expense)
+    await audit(req, 'expense:created', { entity: 'expense', entityId: expense._id, metadata: { amount: expense.amount, vendor: expense.vendor } })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
@@ -158,6 +163,7 @@ export const deleteExpense = async (req, res) => {
     if (expense.user.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'Not authorized' })
     }
+    await audit(req, 'expense:deleted', { entity: 'expense', entityId: expense._id, metadata: { amount: expense.amount, vendor: expense.vendor } })
     await expense.deleteOne()
     res.json({ message: 'Expense deleted' })
   } catch (error) {

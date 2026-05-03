@@ -34,7 +34,7 @@ const RecurringInvoices = () => {
   const [showModal, setShowModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-
+  const [customersLoading, setCustomersLoading] = useState(true)
   const [form, setForm] = useState({
     customerId: '', customerName: '', frequency: 'monthly',
     startDate: new Date().toISOString().split('T')[0],
@@ -44,15 +44,18 @@ const RecurringInvoices = () => {
   })
 
   useEffect(() => {
-    Promise.all([
-      api.get('/recurring'),
-      api.get('/customers'),
-    ]).then(([rRes, cRes]) => {
-      setRecurring(rRes.data)
-      setCustomers(cRes.data)
+  // Load customers fast and independently
+    api.get('/customers').then(({ data }) => {
+        setCustomers(data)
+        setCustomersLoading(false)
+    }).catch(() => setCustomersLoading(false))
+
+    // Load recurring separately
+    api.get('/recurring').then(({ data }) => {
+        setRecurring(data)
     }).catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
+        .finally(() => setLoading(false))
+    }, [])
 
   const handleCustomerSelect = (e) => {
     const c = customers.find(c => c._id === e.target.value)
@@ -207,10 +210,10 @@ const RecurringInvoices = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
                   <label style={labelStyle}>Client</label>
-                  <select onChange={handleCustomerSelect} style={inputStyle} defaultValue="">
-                    <option value="">— Select client —</option>
-                    {customers.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                  </select>
+                  <select value={form.customerId} onChange={handleCustomerSelect} style={inputStyle} disabled={customersLoading}>
+                    <option value="">{customersLoading ? 'Loading clients...' : '— Select client —'}</option>
+                        {customers.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                    </select>
                   {!form.customerId && (
                     <input value={form.customerName} onChange={e => setForm(f => ({ ...f, customerName: e.target.value }))}
                       placeholder="Or type name manually" style={{ ...inputStyle, marginTop: 6 }} />

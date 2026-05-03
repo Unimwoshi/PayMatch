@@ -3,7 +3,7 @@ import Invoice from '../models/Invoice.js'
 import Payment from '../models/Payment.js'
 import Expense from '../models/Expense.js'
 import Customer from '../models/Customer.js'
-import { Parser } from '@json2csv/plainjs '
+import {Parser} from '@json2csv/plainjs'
 
 export const exportAllData = async (req, res) => {
   try {
@@ -89,6 +89,7 @@ export const exportAllData = async (req, res) => {
     )
 
     await archive.finalize()
+    await audit(req, 'export:data_exported', { metadata: { exportedAt: new Date() } })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }

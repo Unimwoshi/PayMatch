@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   LayoutDashboard, FileText, CreditCard, GitMerge,
   LogOut, ChevronLeft, ChevronRight, Settings,
-  Users, Receipt, Bell, X, MoreHorizontal
+  Users, Receipt, Bell, X, MoreHorizontal, RefreshCw, Shield
 } from 'lucide-react'
 
 const navItems = [
@@ -15,9 +15,9 @@ const navItems = [
   { to: '/receipts',       label: 'Expenses',     icon: Receipt },
   { to: '/reminders',      label: 'Reminders',    icon: Bell },
   { to: '/reconciliation', label: 'Reconcile',    icon: GitMerge },
-  { to: '/settings',       label: 'Settings',     icon: Settings },
   { to: '/tax', label: 'Tax Report', icon: FileText },
   { to: '/recurring', label: 'Recurring', icon: RefreshCw },
+  { to: '/settings',       label: 'Settings',     icon: Settings },
 ]
 
 // Primary 4 shown in mobile bottom nav
@@ -117,6 +117,14 @@ const Sidebar = () => {
             <p className="text-white/40 text-xs truncate">{user?.businessName || user?.email}</p>
           </div>
         </NavLink>
+        {user?.role === 'admin' && (
+        <NavLink to="/admin" className="flex items-center px-3 py-2.5 rounded-lg w-full hover:bg-white/5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <Shield size={17} className="flex-shrink-0" />
+          <span className="ml-3" style={{ opacity: collapsed ? 0 : 1, maxWidth: collapsed ? 0 : 200, transition: 'opacity 0.2s ease, max-width 0.3s ease' }}>
+            Admin
+          </span>
+        </NavLink>
+      )}
 
         <button
           onClick={handleLogout}

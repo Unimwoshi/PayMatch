@@ -2,6 +2,7 @@ import User from '../models/User.js'
 import jwt from 'jsonwebtoken'
 import logger from '../utils/logger.js'
 import { logoUploader } from '../config/cloudinary.js'
+import audit from '../utils/audit.js'
 
 const generateAccessToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '15m' })
@@ -51,6 +52,7 @@ export const registerUser = async (req, res) => {
       onboardingComplete: user.onboardingComplete,
       token: accessToken
     })
+    await audit(req, 'auth:register', { entity: 'user', entityId: user._id, metadata: { email: user.email } })
   } catch (error) {
     logger.error({ event: 'register_error', error: error.message })
     res.status(500).json({ message: 'Server error' })
@@ -115,6 +117,7 @@ export const loginUser = async (req, res) => {
       onboardingComplete: user.onboardingComplete,
       token: accessToken
     })
+    await audit(req, 'auth:login', { metadata: { email: user.email } })
   } catch (error) {
     logger.error({ event: 'login_error', error: error.message })
     res.status(500).json({ message: 'Server error' })
@@ -175,26 +178,31 @@ export const getMe = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, businessName, email } = req.body
+    const { name, businessName, email, businessDetails, weeklyEmailEnabled } = req.body
     const user = await User.findById(req.user._id)
     if (!user) return res.status(404).json({ message: 'User not found' })
 
     if (name) user.name = name
     if (businessName) user.businessName = businessName
     if (email) user.email = email
+    if (weeklyEmailEnabled !== undefined) user.weeklyEmailEnabled = weeklyEmailEnabled
+    if (businessDetails) {
+      user.businessDetails = { ...user.businessDetails.toObject?.() || user.businessDetails, ...businessDetails }
+    }
 
     await user.save()
-
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
       businessName: user.businessName,
       plan: user.plan,
-      onboardingComplete: user.onboardingComplete
+      onboardingComplete: user.onboardingComplete,
+      businessDetails: user.businessDetails,
+      weeklyEmailEnabled: user.weeklyEmailEnabled,
     })
   } catch (error) {
-    res.status(500).json({ message: 'Server error' })
+    res.status(500).json({ message: 'Server error', error: error.message })
   }
 }
 

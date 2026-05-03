@@ -111,7 +111,7 @@ const Invoices = () => {
                       borderBottom: '1px solid var(--color-border)',
                       cursor: 'pointer',
                     }}
-                    onClick={() => navigate(`/invoices/${inv._id}/preview`)}
+                    onClick={() => navigate(`/invoices/${inv._id}/preview?mode=view`)}
                   >
                     <td className="px-5 py-4 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                       {inv.invoiceNumber || '—'}

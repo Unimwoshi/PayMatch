@@ -59,8 +59,7 @@ const userSchema = new mongoose.Schema({
   },
   lastLogin: {
     type: Date
-  }
-
+  },
   paymentKeys: {
     paystack: {
       secretKey: { type: String },
@@ -75,6 +74,17 @@ const userSchema = new mongoose.Schema({
   },
 
   weeklyEmailEnabled: { type: Boolean, default: true },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  suspended: { type: Boolean, default: false },
+  suspendedAt: { type: Date, default: null },
+  suspendedReason: { type: String, default: null },
+  ninVerified: { type: Boolean, default: false },
+  ninHash: { type: String, default: null },
+  ninEncrypted: { type: String, default: null },
+  cacNumber: { type: String, default: null },
+  cacVerified: { type: Boolean, default: false },
+  verificationTier: { type: String, enum: ['none', 'nin', 'cac', 'full'], default: 'none' },
+  lastActiveAt: { type: Date, default: null },
 }, { timestamps: true })
 
 userSchema.pre('save', async function () {

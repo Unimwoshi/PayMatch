@@ -16,6 +16,14 @@ const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET)
       req.user = await User.findById(decoded.id).select('-password -refreshTokens')
 
+      
+      if (req.user.suspended) {
+        return res.status(403).json({
+          message: 'Your account has been temporarily restricted. Please contact support.',
+          code: 'ACCOUNT_SUSPENDED'
+        })
+      }
+
       if (!req.user) {
         return res.status(401).json({ message: 'Not authorized, user not found' })
       }

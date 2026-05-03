@@ -102,6 +102,7 @@ export const generateReminder = async (req, res) => {
     })
 
     res.json({ message, waLink, phone, daysOverdue })
+    await audit(req, 'reminder:sent', { entity: 'invoice', entityId: invoice._id, metadata: { tone, customerName: invoice.customerName } })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }

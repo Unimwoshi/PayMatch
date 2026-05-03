@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 
 const inputStyle = {
@@ -125,6 +125,8 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
   const [discount, setDiscount] = useState(0)
   const [discountType, setDiscountType] = useState('fixed')
   const [duplicateWarning, setDuplicateWarning] = useState(null)
+  const [showAddCustomer, setShowAddCustomer] = useState(false)
+  const [addingCustomer, setAddingCustomer] = useState(false)
 
   useEffect(() => {
     api.get('/customers').then(({ data }) => setCustomers(data)).catch(() => {})
@@ -151,6 +153,26 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
         }))
       } else {
         setForm(prev => ({ ...prev, customerId: '' }))
+      }
+    }
+
+    const handleAddToDirectory = async () => {
+      if (!form.customerName) return
+      setAddingCustomer(true)
+      try {
+        const { data } = await api.post('/customers', {
+          name: form.customerName,
+          email: form.customerEmail,
+          phone: form.customerPhone,
+          address: form.customerAddress,
+        })
+        setCustomers(prev => [...prev, data])
+        setForm(prev => ({ ...prev, customerId: data._id }))
+        setShowAddCustomer(false)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setAddingCustomer(false)
       }
     }
 
@@ -342,19 +364,73 @@ const CreateInvoiceModal = ({ onClose, onCreated, api }) => {
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={labelStyle}>Select existing client</label>
+                {/* Customer selector */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Customer *</label>
                   <select
+                    value={form.customerId || ''}
                     onChange={handleCustomerSelect}
                     style={inputStyle}
-                    defaultValue=""
                   >
-                    <option value="">— or type manually below —</option>
+                    <option value="">— Select from directory —</option>
                     {customers.map(c => (
                       <option key={c._id} value={c._id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
+
+                {/* Manual name input — shows when no customer selected */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>
+                    Or enter name manually
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      name="customerName"
+                      value={form.customerName}
+                      onChange={(e) => {
+                        handleChange(e)
+                        // Show "add to directory" prompt if name typed and not from directory
+                        setShowAddCustomer(!!e.target.value && !form.customerId)
+                      }}
+                      placeholder="Type customer name..."
+                      style={inputStyle}
+                      disabled={!!form.customerId}
+                    />
+                    {form.customerId && (
+                      <button
+                        type="button"
+                        onClick={() => setForm(prev => ({ ...prev, customerId: '', customerName: '', customerEmail: '', customerPhone: '', customerAddress: '' }))}
+                        style={{
+                          position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          fontSize: 11, color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        Clear ×
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Add to directory prompt */}
+                  {showAddCustomer && form.customerName && !form.customerId && (
+                    <button
+                      type="button"
+                      onClick={handleAddToDirectory}
+                      disabled={addingCustomer}
+                      style={{
+                        marginTop: 6, padding: '6px 12px', borderRadius: 8,
+                        border: '1px dashed var(--color-primary)',
+                        backgroundColor: 'rgba(37,99,235,0.05)',
+                        fontSize: 12, color: 'var(--color-primary)',
+                        cursor: 'pointer', width: '100%', textAlign: 'left',
+                      }}
+                    >
+                      {addingCustomer ? 'Adding...' : `+ Add "${form.customerName}" to customer directory`}
+                    </button>
+                  )}
+                </div>
+
                 <div>
                   <label style={labelStyle}>Customer name *</label>
                   <input name="customerName" value={form.customerName} onChange={handleChange}
