@@ -49,6 +49,7 @@ export const registerUser = async (req, res) => {
       email: user.email,
       businessName: user.businessName,
       plan: user.plan,
+      role: user.role,  
       onboardingComplete: user.onboardingComplete,
       token: accessToken
     })
@@ -114,6 +115,7 @@ export const loginUser = async (req, res) => {
       email: user.email,
       businessName: user.businessName,
       plan: user.plan,
+      role: user.role,  
       onboardingComplete: user.onboardingComplete,
       token: accessToken
     })
@@ -197,6 +199,7 @@ export const updateProfile = async (req, res) => {
       email: user.email,
       businessName: user.businessName,
       plan: user.plan,
+      role: user.role,  
       onboardingComplete: user.onboardingComplete,
       businessDetails: user.businessDetails,
       weeklyEmailEnabled: user.weeklyEmailEnabled,
@@ -233,6 +236,7 @@ export const completeOnboarding = async (req, res) => {
       email: user.email,
       businessName: user.businessName,
       plan: user.plan,
+      role: user.role,  
       onboardingComplete: user.onboardingComplete,
       businessDetails: user.businessDetails
     })

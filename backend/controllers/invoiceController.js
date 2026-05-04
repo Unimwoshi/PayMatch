@@ -92,6 +92,10 @@ export const createInvoice = async (req, res) => {
       source: 'manual'
     })
 
+    const last = await Invoice.findOne({ user: req.user._id }).sort({ invoiceNumber: -1 })
+    const nextNumber = last ? (parseInt(last.invoiceNumber) || 0) + 1 : 1
+    invoice.invoiceNumber = invoice.invoiceNumber || String(nextNumber).padStart(4, '0')
+
     if (invoice.customer) {
       await recalculateCustomerStats(invoice.customer, req.user._id)
     }

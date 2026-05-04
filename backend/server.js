@@ -22,6 +22,7 @@ import paymentLinkRoutes from './routes/paymentLinkRoutes.js'
 import { exportAllData } from './controllers/exportController.js'
 import protect from './middleware/authMiddleware.js'
 import adminRoutes from './routes/adminRoutes.js'
+import adminOnly from './middleware/adminMiddleware.js'
 import { submitNIN, submitCAC } from './controllers/verificationController.js'
 
 
@@ -59,7 +60,7 @@ app.use('/api/recurring', recurringRoutes)
 app.use('/api/tax', taxRoutes)
 app.use('/api/payment-links', paymentLinkRoutes)
 app.get('/api/export/all', protect, exportAllData)
-app.use('/api/admin', adminRoutes)
+app.use('/api/admin', protect, adminOnly, adminRoutes)
 app.post('/api/verify/nin', protect, submitNIN)
 app.post('/api/verify/cac', protect, submitCAC)
 
