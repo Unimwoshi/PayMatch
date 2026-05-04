@@ -9,12 +9,27 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user')
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser))
+  const init = async () => {
+    const storedToken = localStorage.getItem('token')
+    if (storedToken) {
+      setToken(storedToken)
+      try {
+        // Always fetch fresh from DB — never trust localStorage for role
+        const { data } = await api.get('/auth/me')
+        setUser(data)
+        localStorage.setItem('user', JSON.stringify(data))
+      } catch (err) {
+        // Token expired or invalid — clear everything
+        setUser(null)
+        setToken(null)
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+      }
     }
     setLoading(false)
-  }, [])
+  }
+  init()
+}, [])
 
   const login = (userData, tokenData) => {
     setUser(userData)

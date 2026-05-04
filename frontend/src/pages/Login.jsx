@@ -42,7 +42,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Pay<span style={{ color: 'var(--color-primary)' }}>Match</span>
+            Ae<span style={{ color: 'var(--color-primary)' }}>thr</span>
           </h1>
           <p className="mt-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             Sign in to your account

@@ -47,6 +47,21 @@ const OnboardingGuard = ({ children }) => {
   }
   return children
 }
+
+const AdminRoute = ({ children }) => {
+  const { user, token, loading } = useAuth()
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--color-primary)' }} />
+    </div>
+  )
+
+  if (!token) return <Navigate to="/login" replace />
+  if (user?.role !== 'admin') return <Navigate to="/dashboard" replace />
+
+  return children
+}
 function App() {
   return (
     <ThemeProvider>
@@ -156,11 +171,11 @@ function App() {
             </ProtectedRoute>
             } />
             <Route path="/admin" element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <AppLayout title="Admin">
                   <Admin />
                 </AppLayout>
-              </ProtectedRoute>
+              </AdminRoute>
               } />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

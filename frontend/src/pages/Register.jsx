@@ -30,11 +30,11 @@ const Register = () => {
 
   setLoading(true)
   try {
-    const { data } = await api.post('/auth/login', form)
+    const { data } = await api.post('/auth/register', form)
     login(data, data.token)
     navigate('/onboarding')
   } catch (err) {
-    setError(err.response?.data?.message || 'Login failed. Try again.')
+    setError(err.response?.data?.message || 'Registration failed. Try again.')
   } finally {
     setLoading(false)
   }
@@ -48,7 +48,7 @@ const Register = () => {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Pay<span style={{ color: 'var(--color-primary)' }}>Match</span>
+            Ae<span style={{ color: 'var(--color-primary)' }}>thr</span>
           </h1>
           <p className="mt-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             Create your account

@@ -168,7 +168,7 @@ const Dashboard = () => {
               <Bar dataKey="expenses" radius={[4, 4, 0, 0]} fill="var(--color-danger)" name="Expenses" />
               <Legend
                 wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
-                formatter={(value) => value === 'income' ? 'Income' : 'Expenses'}
+                formatter={(value) => value !== 'income' ? 'Income' : 'Expenses'}
               />
             </BarChart>
           </ResponsiveContainer>
